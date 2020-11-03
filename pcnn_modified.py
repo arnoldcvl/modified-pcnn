@@ -71,7 +71,11 @@ def main(argv):
     
     cv.imshow("Result", Y)
     Y_AC = cv.normalize(Y_AC.astype('float'), None, 0.0, 1.0, cv.NORM_MINMAX)
-    cv.imshow("Result ac", Y_AC)
+    cv.imshow("Result Acumulated", Y_AC)
+
+    #Y = (Y*255).astype(np.uint8)
+    cv.imwrite('result.jpg', Y*255)
+    cv.imwrite('result Acumulated.jpg', Y_AC*255)
         
     cv.waitKey()
     return 0
