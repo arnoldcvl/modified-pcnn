@@ -43,6 +43,10 @@ trackbar_name_AL = 'AL/100 D:10'
 trackbar_name_AT = 'AT/100 D:50'
 
 trackbar_name_Lines = 'Lines D:10'
+trackbar_name_KHT_one = 'cluster minSize D:10'
+trackbar_name_KHT_two = 'cluster_min_deviation/10 D:20'
+
+trackbar_name_save = 'Save image on 1'
 
 def main(argv):
     default_file = 'img/3.jpeg'
@@ -80,7 +84,12 @@ def main(argv):
     cv.createTrackbar(trackbar_name_AL, title_window , 10, alpha_slider_max, on_trackbar)
     cv.createTrackbar(trackbar_name_AT, title_window , 50, alpha_slider_max, on_trackbar)
 
-    cv.createTrackbar(trackbar_name_Lines, title_window , 10, alpha_slider_max, on_trackbar) 
+    cv.createTrackbar(trackbar_name_Lines, title_window , 10, alpha_slider_max, on_trackbar)
+    cv.createTrackbar(trackbar_name_KHT_one, title_window , 10, alpha_slider_max, on_trackbar)
+    cv.createTrackbar(trackbar_name_KHT_two, title_window , 20, alpha_slider_max, on_trackbar)
+
+    cv.createTrackbar(trackbar_name_save, title_window , 0, 1, on_trackbar)
+
 
     on_trackbar(0)
         
@@ -98,6 +107,10 @@ def on_trackbar(val):
     Alpha_T = (cv.getTrackbarPos(trackbar_name_AT, title_window))/100
 
     lines_count = cv.getTrackbarPos(trackbar_name_Lines, title_window)
+    KHT_cluster_min_size = cv.getTrackbarPos(trackbar_name_KHT_one, title_window)
+    KHT_cluster_deviation = (cv.getTrackbarPos(trackbar_name_KHT_two, title_window))/10.0
+
+    if KHT_cluster_min_size < 2.0: KHT_cluster_min_size=2.0
 
     #initialization
     dim = S.shape
@@ -121,25 +134,19 @@ def on_trackbar(val):
         Y = (U>T).astype(np.float)
         Y_AC = Y_AC + Y
     
-    '''
-    #show results
-    cv.imshow("Result", Y)
-    Y_AC = cv.normalize(Y_AC.astype('float'), None, 0.0, 1.0, cv.NORM_MINMAX)
-    cv.imshow("Result Acumulated", Y_AC)
-    '''
     Y = (Y*255).astype(np.uint8)
      
     bw_Y = cv.Canny(Y, 80, 200)
-    cv.imwrite('teste2.jpg', bw_Y)
-
+    canny_copy = bw_Y.copy()
     
     height, width = Y.shape
-    lines_Y = kht(bw_Y)
+    lines_Y = kht(bw_Y, cluster_min_size=KHT_cluster_min_size, cluster_min_deviation=KHT_cluster_deviation)
 
     for (rho, theta) in lines_Y[:lines_count]:
+        
         theta = radians(theta)
         cos_theta, sin_theta = cos(theta), sin(theta)
-
+        '''
         if sin_theta != 0:
             x = (-width / 2, width / 2 - 1)
             y = ((rho - x[0] * cos_theta) / sin_theta, (rho - x[1] * cos_theta) / sin_theta)
@@ -148,11 +155,26 @@ def on_trackbar(val):
             y = (-height / 2, height / 2 - 1)
         x = (int(x[0] + width / 2), int(x[1] + width / 2))
         y = (int(y[0] + height / 2), int(y[1] + height / 2))
+        '''
+        h2 = height/2
+        w2 = width/2
+        if sin_theta != 0:
+            one_div_sin_theta = 1 / sin_theta
+            x = (round(0) , round(h2 + (rho + w2 * cos_theta) * one_div_sin_theta))
+            y = (round(w2+w2) , round(h2 + (rho - w2 * cos_theta) * one_div_sin_theta))
+        else:
+            x = (round(w2 + rho), round(0))
+            y = (round(w2 + rho), round(h2+h2))
 
-        cv.line(Y, x, y, (120,0,255), 3, cv.LINE_AA)
-    
+        cv.line(Y, x, y, (120,0,255), 1, cv.LINE_AA)
+
+    on_save(Y, canny_copy)
     cv.imshow("Result", Y)
 
+def on_save(image_one, image_two):
+    if cv.getTrackbarPos(trackbar_name_save, title_window) == 1:
+        cv.imwrite('saving kht.jpg', image_one)
+        cv.imwrite('saving canny.jpg', image_two)
         
 if __name__ == "__main__":
     main(sys.argv[1:])

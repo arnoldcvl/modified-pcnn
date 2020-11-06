@@ -81,14 +81,14 @@ def main(argv):
 
 def on_trackbar(val):
     #Get trackbar values
-    Beta = (cv.getTrackbarPos(trackbar_name_Beta, title_window))/100
+    Beta = (cv.getTrackbarPos(trackbar_name_Beta, title_window))/100.0
     Num = cv.getTrackbarPos(trackbar_name_Num, title_window)
 
     T_ini = (cv.getTrackbarPos(trackbar_name_Tini, title_window))
-    V_T = cv.getTrackbarPos(trackbar_name_VT, title_window)/100
+    V_T = cv.getTrackbarPos(trackbar_name_VT, title_window)/100.0
 
-    Alpha_L = (cv.getTrackbarPos(trackbar_name_AL, title_window))/100
-    Alpha_T = (cv.getTrackbarPos(trackbar_name_AT, title_window))/100  
+    Alpha_L = (cv.getTrackbarPos(trackbar_name_AL, title_window))/100.0
+    Alpha_T = (cv.getTrackbarPos(trackbar_name_AT, title_window))/100.0
 
     #initialization
     dim = S.shape
@@ -103,7 +103,7 @@ def on_trackbar(val):
     for cont in range(Num):
         #numpy.convolve(W, Y, mode='same')
         L = Alpha_L * signal.convolve2d(Y, W, mode='same')
-        U = S * (1 + Beta * L)
+        U = S * (1.0 + Beta * L)
 
         YC = 1 - Y      
         T = T - Alpha_T
@@ -118,8 +118,8 @@ def on_trackbar(val):
     cv.imshow("Result Acumulated", Y_AC)
 
     #Y = (Y*255).astype(np.uint8)
-    cv.imwrite('result.jpg', Y*255)
-    cv.imwrite('result Acumulated.jpg', Y_AC*255)
+    cv.imwrite('result.jpg', (Y*255))
+    cv.imwrite('result Acumulated.jpg', (Y_AC*255))
 
         
 if __name__ == "__main__":

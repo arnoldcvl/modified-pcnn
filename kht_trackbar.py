@@ -37,55 +37,67 @@ from matplotlib import pyplot as plt
 from os import path
 
 
+trackbar_name_KHT_one = 'cluster minSize D:10'
+trackbar_name_KHT_two = 'cluster_min_deviation/10 D:20'
+trackbar_name_KHT_three = 'Amount of revelant lines + 10 D:0'
+title_window = 'Parameters'
+alpha_slider_max = 255
+
 # The main function.
 def main():
+    global im, bw, filenames, relevant_lines, base_folder
     # Set sample image files and number of most relevant lines.
     base_folder = path.dirname(os.path.abspath(__file__))
-    filenames = ["result.jpg"]
-    relevant_lines = [10]
+    filenames = ["result.jpg", "result Acumulated.jpg"]
+    relevant_lines = [10,10]
 
-    # Process each one of the images.
+    cv2.namedWindow(title_window)
+    cv2.createTrackbar(trackbar_name_KHT_one, title_window , 10, alpha_slider_max, on_trackbar)
+    cv2.createTrackbar(trackbar_name_KHT_two, title_window , 20, alpha_slider_max, on_trackbar)
+    cv2.createTrackbar(trackbar_name_KHT_three, title_window , 0, alpha_slider_max, on_trackbar)
+
+    on_trackbar(0)
+
+    cv2.waitKey()
+
+def on_trackbar(val):
+    print('xd')
+        # Process each one of the images.
     for (filename, lines_count) in zip(filenames, relevant_lines):
         # Load input image.
         im = cv2.cvtColor(cv2.imread(path.join(base_folder, filename)), cv2.COLOR_BGR2RGB)
-        height, width, _ = im.shape
 
         # Convert the input image to a binary edge image.
         bw = cv2.Canny(cv2.cvtColor(im, cv2.COLOR_RGB2GRAY), 80, 200)
+        #cv2.imwrite('canny.jpg', bw)
+        height, width, _ = im.shape
 
+        KHT_cluster_min_size = max(cv2.getTrackbarPos(trackbar_name_KHT_one, title_window),2)
+        KHT_cluster_deviation = (cv2.getTrackbarPos(trackbar_name_KHT_two, title_window))/10.0
+        extra_lines = cv2.getTrackbarPos(trackbar_name_KHT_three, title_window)
         # Call the kernel-base Hough transform function.
-        lines = kht(bw)
-        
+        lines = kht(bw, cluster_min_size=KHT_cluster_min_size, cluster_min_deviation=KHT_cluster_deviation)
+
         # Show current image and its most relevant detected lines.
-        plt.imshow(im)
 
-        plt.title("KHT - Image '%s' - %d most relevant lines" % (filename, lines_count))
-        plt.autoscale(enable=False)
-        plt.xticks([])
-        plt.yticks([])
-
-        for (rho, theta) in lines[:lines_count]:
+        for (rho, theta) in lines[:lines_count + extra_lines]:
             theta = radians(theta)
             cos_theta, sin_theta = cos(theta), sin(theta)
 
-            # Convert from KHT to Matplotlib's coordinate system conventions.
-            # The KHT implementation assumes row-major memory alignment for
-            # images. Also, it assumes that the origin of the image coordinate
-            # system is at the center of the image, with the x-axis growing to
-            # the right and the y-axis growing down.
+            h2 = height/2
+            w2 = width/2
             if sin_theta != 0:
-                x = (-width / 2, width / 2 - 1)
-                y = ((rho - x[0] * cos_theta) / sin_theta, (rho - x[1] * cos_theta) / sin_theta)
+                one_div_sin_theta = 1 / sin_theta
+                x = (round(0) , round(h2 + (rho + w2 * cos_theta) * one_div_sin_theta))
+                y = (round(w2+w2) , round(h2 + (rho - w2 * cos_theta) * one_div_sin_theta))
             else:
-                x = (rho, rho)
-                y = (-height / 2, height / 2 - 1)
-            x = (x[0] + width / 2, x[1] + width / 2)
-            y = (y[0] + height / 2, y[1] + height / 2)
+                x = (round(w2 + rho), round(0))
+                y = (round(w2 + rho), round(h2+h2))
 
-            plt.plot(x, y, color='yellow', linewidth=1.0)
+            cv2.line(im, x, y, (120,0,255), 1, cv2.LINE_AA)
 
-        plt.show()
-
+        cv2.imshow("Result of %s" %filename, im)
+        #cv2.imwrite('arnold kht %s.jpg' %filename, im)
 
 if __name__ == "__main__":
     main()
